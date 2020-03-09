@@ -75,11 +75,17 @@ class SecondLevelWithDefaultHandling:
 class SecondLevelWithoutDefaultHandling:
     pass 
 
+class SecondLevelNoIndexWithDefault:
+    @expose(contentType='text/html; charset=utf-8')
+    def default(self):
+        return '''SecondLevelNoIndexWithDefault.default'''
+
 
 class SiteRoot:
     def __init__(self):
         self.withDefault = SecondLevelWithDefaultHandling()
-        self.withoutDefault = SecondLevelWithoutDefaultHandling() 
+        self.withoutDefault = SecondLevelWithoutDefaultHandling()
+        self.noIndexWithDefault = SecondLevelNoIndexWithDefault() 
 
     @expose(contentType='text/html; charset=utf-8')
     def index(self):
@@ -155,6 +161,12 @@ class SecondSiteTest (unittest.TestCase):
         res = self.testApp.get('/withDefault/missingpage/third')
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelWithDefault.default'
+
+    @test('Default handler of a child is used if child root is requested and no index handler found')
+    def _(self):
+        res = self.testApp.get('/noIndexWithDefault')
+        expect(res.status) == 200
+        expect(res.body) == b'SecondLevelNoIndexWithDefault.default'
 
 
 if __name__ == '__main__':
