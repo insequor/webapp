@@ -149,6 +149,12 @@ class SecondSiteTest (unittest.TestCase):
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.default'
 
+    @test("Last known default handler is used of child root is requested and no index and default handlers available")
+    def _(self):
+        res = self.testApp.get('/withoutDefault')
+        expect(res.status) == 200
+        expect(res.body) == b'SiteRoot.default'
+
     
     @test('If a functions is not exposed, URL mapping is not done and last known default is returned')
     def _(self):
