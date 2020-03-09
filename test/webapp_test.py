@@ -137,18 +137,18 @@ class SecondSiteTest (unittest.TestCase):
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelWithDefault.default'
 
-    @test("asking a missing page at second level without default handler returns the global default handler")
+    @test("asking a missing page at second level without default handler returns the last known default handler")
     def _(self):
         res = self.testApp.get('/withoutDefault/missingpage')
         expect(res.status) == 200
-        expect(res.body) == b'Missing Page: /withoutDefault/missingpage'
+        expect(res.body) == b'SiteRoot.default'
 
     
-    @test('If a functions is not exposed, URL mapping is not done and global default is returned')
+    @test('If a functions is not exposed, URL mapping is not done and last known default is returned')
     def _(self):
         res = self.testApp.get('/withDefault/notexposed')
         expect(res.status) == 200
-        expect(res.body) == b'Missing Page: /withDefault/notexposed'
+        expect(res.body) == b'SecondLevelWithDefault.default'
 
     @test('Requested a third level URL with missing second level returns the global handler')
     def _(self):

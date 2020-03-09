@@ -18,38 +18,44 @@ class expose:
 def global_default():
     return 'Missing Page: %s' % web.ctx.path
 
-def get_default_handler(nodeHandler):
-    try:
-        return getattr(nodeHandler, 'default')
-    except AttributeError:
-        return global_default 
+def get_default_handler(nodeHandlers):
+    for nodeHandler in reversed(nodeHandlers):
+        try:
+            return getattr(nodeHandler, 'default')
+        except AttributeError:
+            pass 
+                
+    return global_default 
 
-def get_index_handler(nodeHandler):
+def get_index_handler(nodeHandlers):
     try:
+        nodeHandler = nodeHandlers[-1]
         return getattr(nodeHandler, 'index')
     except AttributeError:
-        return get_default_handler(nodeHandler)
+        return get_default_handler(nodeHandlers)
 
 class Index:
     root = None 
     def GET(self):
         path = web.ctx.path.split('/')[1:]
         nodeHandler = self.root 
+        nodeHandlers = [nodeHandler]
         for node in path:
             if not node:
                 break 
             try:
                 nodeHandler = getattr(nodeHandler, node)
+                nodeHandlers.append(nodeHandler)
                 if callable(nodeHandler):
                     exposed = nodeHandler.exposed
 
             except AttributeError:
-                nodeHandler = get_default_handler(nodeHandler) 
+                nodeHandler = get_default_handler(nodeHandlers) 
                 break 
 
 
         if not callable(nodeHandler):
-            nodeHandler = get_index_handler(nodeHandler)
+            nodeHandler = get_index_handler(nodeHandlers)
 
         web.header('Content-Type', nodeHandler.contentType)
         
