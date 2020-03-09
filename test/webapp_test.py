@@ -54,8 +54,16 @@ class FirstSiteTest (unittest.TestCase):
 
 
 
+class ThirdLevel:
+    @expose(contentType='text/html; charset=utf-8')
+    def index(self):
+        return '''ThirdLevel.index'''
+
 
 class SecondLevelWithDefaultHandling:
+    def __init__(self):
+        self.third = ThirdLevel()
+
     @expose(contentType='text/html; charset=utf-8')
     def default(self):
         return '''SecondLevelWithDefault.default'''
@@ -141,6 +149,12 @@ class SecondSiteTest (unittest.TestCase):
         res = self.testApp.get('/withDefault/notexposed')
         expect(res.status) == 200
         expect(res.body) == b'Missing Page: /withDefault/notexposed'
+
+    @test('Requested a third level URL with missing second level returns the global handler')
+    def _(self):
+        res = self.testApp.get('/withDefault/missingpage/third')
+        expect(res.status) == 200
+        expect(res.body) == b'SecondLevelWithDefault.default'
 
 
 if __name__ == '__main__':

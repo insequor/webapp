@@ -45,11 +45,12 @@ class Index:
 
             except AttributeError:
                 nodeHandler = get_default_handler(nodeHandler) 
+                break 
 
 
         if not callable(nodeHandler):
             nodeHandler = get_index_handler(nodeHandler)
-        
+
         web.header('Content-Type', nodeHandler.contentType)
         
         return nodeHandler()
