@@ -3,17 +3,23 @@ sys.path.append('py')
 
 import unittest 
 from paste.fixture import TestApp
-from oktest import ok as expect, test, main as runTests   
+from oktest import ok as expect, test, todo, run as runTests   
 
 from webapp import expose, Application, URLS, Index 
 import webapp 
 
-class FirstSiteTest (unittest.TestCase):
+
+testApp = None
+
+class DefaultSiteTest (unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        global testApp 
+        Index.root = None
         app = Application(URLS, globals())
         middleware = []
-        cls.testApp = TestApp(app.wsgifunc(*middleware))
+        testApp = TestApp(app.wsgifunc(*middleware))
+
 
     @classmethod
     def tearDownClass(cls):
@@ -21,19 +27,19 @@ class FirstSiteTest (unittest.TestCase):
 
     @test("asking for the root url returns the missing page information")
     def _(self):
-        res = self.testApp.get('/')
+        res = testApp.get('/')
         expect(res.status) == 200
         expect(res.body) == b'Missing Page: /'
 
     @test("asking for a URL other than the root url returns the missing page information")
     def _(self):
-        res = self.testApp.get('/missing/page')
+        res = testApp.get('/missing/page')
         expect(res.status) == 200
         expect(res.body) == b'Missing Page: /missing/page'
 
     @test("asking for a URL with parameters returns missing page info without the parameters")
     def _(self):
-        res = self.testApp.get('/missing/page?param=1&param=2')
+        res = testApp.get('/missing/page?param=1&param=2')
         expect(res.status) == 200
         expect(res.body) == b'Missing Page: /missing/page'
 
@@ -46,7 +52,7 @@ class FirstSiteTest (unittest.TestCase):
             return 'Custom global default handler'
 
         webapp.global_default = my_default
-        res = self.testApp.get('/missing/page?param=1&param=2')
+        res = testApp.get('/missing/page?param=1&param=2')
         expect(res.status) == 200
         expect(res.body) == b'Custom global default handler'
 
@@ -101,13 +107,16 @@ class SiteRoot:
     
 
 
-class SecondSiteTest (unittest.TestCase):
+class CustomSiteTest (unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        global testApp 
+
         Index.root = SiteRoot()
         app = Application(URLS, globals())
         middleware = []
-        cls.testApp = TestApp(app.wsgifunc(*middleware))
+        
+        testApp = TestApp(app.wsgifunc(*middleware))
 
     @classmethod
     def tearDownClass(cls):
@@ -115,67 +124,66 @@ class SecondSiteTest (unittest.TestCase):
 
     @test("asking for root URL returns the top level Index")
     def _(self):
-        res = self.testApp.get('/')
+        res = testApp.get('/')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.index'
 
     @test("asking for index page at top level will mapped to the index page")
     def _(self):
-        res = self.testApp.get('/index')
+        res = testApp.get('/index')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.index'
 
     @test("asking for a specific top level URL returns the mapped page")
     def _(self):
-        res = self.testApp.get('/page')
+        res = testApp.get('/page')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.page'
 
     @test("asking for a missing top level URL returns the default page from top level")
     def _(self):
-        res = self.testApp.get('/missingpage')
+        res = testApp.get('/missingpage')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.default'
 
     @test("asking a missing page at second level returns the default handler of that level")
     def _(self):
-        res = self.testApp.get('/withDefault/missingpage')
+        res = testApp.get('/withDefault/missingpage')
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelWithDefault.default'
 
     @test("asking a missing page at second level without default handler returns the last known default handler")
     def _(self):
-        res = self.testApp.get('/withoutDefault/missingpage')
+        res = testApp.get('/withoutDefault/missingpage')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.default'
 
     @test("Last known default handler is used of child root is requested and no index and default handlers available")
     def _(self):
-        res = self.testApp.get('/withoutDefault')
+        res = testApp.get('/withoutDefault')
         expect(res.status) == 200
         expect(res.body) == b'SiteRoot.default'
 
     
     @test('If a functions is not exposed, URL mapping is not done and last known default is returned')
     def _(self):
-        res = self.testApp.get('/withDefault/notexposed')
+        res = testApp.get('/withDefault/notexposed')
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelWithDefault.default'
 
     @test('Requested a third level URL with missing second level returns the global handler')
     def _(self):
-        res = self.testApp.get('/withDefault/missingpage/third')
+        res = testApp.get('/withDefault/missingpage/third')
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelWithDefault.default'
 
     @test('Default handler of a child is used if child root is requested and no index handler found')
     def _(self):
-        res = self.testApp.get('/noIndexWithDefault')
+        res = testApp.get('/noIndexWithDefault')
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelNoIndexWithDefault.default'
 
 
 if __name__ == '__main__':
-    unittest.main()
-    #runTests()
-    #run(DefaultSiteTest, CustomSiteTest)
+    #unittest.main()
+    runTests()
