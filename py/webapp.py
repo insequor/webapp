@@ -40,13 +40,18 @@ class Index:
                 break 
             try:
                 nodeHandler = getattr(nodeHandler, node)
+                if callable(nodeHandler):
+                    exposed = nodeHandler.exposed
+
             except AttributeError:
                 nodeHandler = get_default_handler(nodeHandler) 
-                
+
+
         if not callable(nodeHandler):
             nodeHandler = get_index_handler(nodeHandler)
-
+        
         web.header('Content-Type', nodeHandler.contentType)
+        
         return nodeHandler()
         
 class Application(web.application):
