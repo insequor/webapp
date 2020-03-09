@@ -183,6 +183,28 @@ class CustomSiteTest (unittest.TestCase):
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelNoIndexWithDefault.default'
 
+    @test("Last known default handler is returned if top level url is mapped to an index page but it is not available")
+    @todo 
+    def _(_):
+        expect(True) == False 
+
+    @test("Last known default handler is returned if a default handler is found but it is not exposed")
+    @todo 
+    def _(_):
+        expect(True) == False 
+
+
+    @test("An absolute missing page handler is returned if global default handler is replaced but it is not exposed")
+    @todo 
+    def _(_):
+        expect(True) == False 
+
+
+class ParameterMappingTest:
+    @test("URL Parameters are detected and passed to the handler automatically")
+    @todo 
+    def _(_):
+        expect(True) == False 
 
 if __name__ == '__main__':
     #unittest.main()
