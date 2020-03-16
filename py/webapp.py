@@ -11,6 +11,7 @@ class expose:
 
         wrapped_func.exposed = True
         wrapped_func.contentType = self.contentType
+        wrapped_func.__doc__ = func.__doc__
         return wrapped_func 
 
 
@@ -32,7 +33,11 @@ def get_index_handler(nodeHandlers):
         nodeHandler = nodeHandlers[-1]
         return getattr(nodeHandler, 'index')
     except AttributeError:
-        return get_default_handler(nodeHandlers)
+        return None #get_default_handler(nodeHandlers)
+
+
+class Site:
+    pass 
 
 class Index:
     root = None 
@@ -54,8 +59,10 @@ class Index:
                 break 
 
 
-        if not callable(nodeHandler):
+        if not callable(nodeHandler) and isinstance(nodeHandler, Site):
             nodeHandler = get_index_handler(nodeHandlers)
+            if not nodeHandler:
+                nodeHandler = get_default_handler(nodeHandlers)
 
         web.header('Content-Type', nodeHandler.contentType)
         
@@ -74,7 +81,44 @@ class Application(web.application):
         func = self.wsgifunc(*middleware)
         return web.httpserver.runsimple(func, (address, port))
 
+    def __get_sitemap(self):
+        
+        sitemap = []
+        def traverse(node, path='/'):
+            if not isinstance(node, Site):
+                return
+            
+            nodeHandler = get_index_handler([node])
+            if nodeHandler:
+                sitemap.append({'url': path, 
+                                'handler': node.__class__.__name__, 
+                                'description': nodeHandler.__doc__ if nodeHandler.__doc__ else ''})
+            if not path.endswith('/'):
+                path = path + '/'
 
+            for attr in dir(node):
+                nodeHandler = getattr(node, attr)
+                
+                if callable(nodeHandler):
+                    try:
+                        exposed = nodeHandler.exposed
+                        sitemap.append({'url': path + attr, 
+                                        'handler': node.__class__.__name__, 
+                                        'description': nodeHandler.__doc__ if nodeHandler.__doc__ else ''})
+                    except AttributeError:
+                        continue 
+
+                else:
+                    traverse(nodeHandler, path + attr)
+                
+
+
+        if Index.root:
+            traverse(Index.root)
+
+        return sitemap 
+
+    sitemap = property(__get_sitemap) 
 
 URLS = (
     '/.*', 'webapp.Index'

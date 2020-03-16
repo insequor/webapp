@@ -5,16 +5,17 @@ import unittest
 from paste.fixture import TestApp
 from oktest import ok as expect, test, todo, run as runTests   
 
-from webapp import expose, Application 
+from webapp import expose, Application, Site 
 import webapp 
 
 
 testApp = None
+app = None
 
 class DefaultSiteTest (unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        global testApp 
+        global testApp, app
         app = Application(root=None, urls=None, globals=globals())
         middleware = []
         testApp = TestApp(app.wsgifunc(*middleware))
@@ -56,17 +57,25 @@ class DefaultSiteTest (unittest.TestCase):
 
         webapp.global_default = oldHandler
 
+    @test("default site returns an empty site map")
+    def _(_):
+        expect(app.sitemap) == []
 
 
-class ThirdLevel:
+
+class ThirdLevel(Site):
     @expose(contentType='text/html; charset=utf-8')
     def index(self):
         return '''ThirdLevel.index'''
 
 
-class SecondLevelWithDefaultHandling:
+class SecondLevelWithDefaultHandling(Site):
     def __init__(self):
         self.third = ThirdLevel()
+
+    @expose(contentType='text/html; charset=utf-8')
+    def index(self):
+        return '''SecondLevelWithDefault.index'''
 
     @expose(contentType='text/html; charset=utf-8')
     def default(self):
@@ -76,23 +85,25 @@ class SecondLevelWithDefaultHandling:
         return '''SecondLevelWithDefault.notexposed'''
      
 
-class SecondLevelWithoutDefaultHandling:
+class SecondLevelWithoutDefaultHandling(Site):
     pass 
 
-class SecondLevelNoIndexWithDefault:
+class SecondLevelNoIndexWithDefault(Site):
     @expose(contentType='text/html; charset=utf-8')
     def default(self):
         return '''SecondLevelNoIndexWithDefault.default'''
 
 
-class SiteRoot:
+class SiteRoot(Site):
     def __init__(self):
+        self.noIndexWithDefault = SecondLevelNoIndexWithDefault()
         self.withDefault = SecondLevelWithDefaultHandling()
         self.withoutDefault = SecondLevelWithoutDefaultHandling()
-        self.noIndexWithDefault = SecondLevelNoIndexWithDefault() 
+         
 
     @expose(contentType='text/html; charset=utf-8')
     def index(self):
+        '''Root page'''
         return '''SiteRoot.index'''
 
     @expose(contentType='text/html; charset=utf-8')
@@ -109,6 +120,7 @@ class CustomSiteTest (unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         global testApp 
+        global app
 
         app = Application(root=SiteRoot(), urls=None, globals=globals())
         middleware = []
@@ -180,6 +192,49 @@ class CustomSiteTest (unittest.TestCase):
         expect(res.status) == 200
         expect(res.body) == b'SecondLevelNoIndexWithDefault.default'
 
+    @test("webapp returns sitemap based on the given siteroot")
+    def _(_):
+        refSiteMap = [
+            {'url': '/',
+             'handler': 'SiteRoot',
+             'description': 'Root page'},
+            {'url': '/default',
+             'handler': 'SiteRoot',
+             'description': ''},
+            {'url': '/index',
+             'handler': 'SiteRoot',
+             'description': 'Root page'},
+            
+            {'url': '/noIndexWithDefault/default',
+             'handler': 'SecondLevelNoIndexWithDefault',
+             'description': ''},
+
+            {'url': '/page',
+             'handler': 'SiteRoot',
+             'description': ''},
+            {'url': '/withDefault',
+             'handler': 'SecondLevelWithDefaultHandling',
+             'description': ''},
+            {'url': '/withDefault/default',
+             'handler': 'SecondLevelWithDefaultHandling',
+             'description': ''},
+            {'url': '/withDefault/index',
+             'handler': 'SecondLevelWithDefaultHandling',
+             'description': ''},
+            {'url': '/withDefault/third',
+             'handler': 'ThirdLevel',
+             'description': ''},
+            {'url': '/withDefault/third/index',
+             'handler': 'ThirdLevel',
+             'description': ''}
+        ]
+        print('\n====')
+        sitemap = app.sitemap 
+        for node in sitemap:
+            print(node)
+        print('\n====')
+        expect(app.sitemap) == refSiteMap
+    
     @test("Last known default handler is returned if top level url is mapped to an index page but it is not available")
     @todo 
     def _(_):
