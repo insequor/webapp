@@ -5,7 +5,7 @@ import unittest
 from paste.fixture import TestApp
 from oktest import ok as expect, test, todo, run as runTests   
 
-from webapp import expose, Application, URLS, Index 
+from webapp import expose, Application 
 import webapp 
 
 
@@ -15,11 +15,9 @@ class DefaultSiteTest (unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         global testApp 
-        Index.root = None
-        app = Application(URLS, globals())
+        app = Application(root=None, urls=None, globals=globals())
         middleware = []
         testApp = TestApp(app.wsgifunc(*middleware))
-
 
     @classmethod
     def tearDownClass(cls):
@@ -112,8 +110,7 @@ class CustomSiteTest (unittest.TestCase):
     def setUpClass(cls):
         global testApp 
 
-        Index.root = SiteRoot()
-        app = Application(URLS, globals())
+        app = Application(root=SiteRoot(), urls=None, globals=globals())
         middleware = []
         
         testApp = TestApp(app.wsgifunc(*middleware))

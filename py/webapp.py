@@ -62,6 +62,14 @@ class Index:
         return nodeHandler()
         
 class Application(web.application):
+    def __init__(self, root=None, urls=None, globals=globals()):
+        if urls is None:
+            urls = URLS
+
+        Index.root = root 
+
+        web.application.__init__(self, urls, globals)
+
     def run(self, address, port, *middleware):
         func = self.wsgifunc(*middleware)
         return web.httpserver.runsimple(func, (address, port))
@@ -69,7 +77,7 @@ class Application(web.application):
 
 
 URLS = (
-    '/.*', 'Index'
+    '/.*', 'webapp.Index'
 )
 
 
