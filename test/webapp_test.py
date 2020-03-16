@@ -228,11 +228,6 @@ class CustomSiteTest (unittest.TestCase):
              'handler': 'ThirdLevel',
              'description': ''}
         ]
-        print('\n====')
-        sitemap = app.sitemap 
-        for node in sitemap:
-            print(node)
-        print('\n====')
         expect(app.sitemap) == refSiteMap
     
     @test("Last known default handler is returned if top level url is mapped to an index page but it is not available")

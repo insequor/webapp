@@ -33,11 +33,11 @@ def get_index_handler(nodeHandlers):
         nodeHandler = nodeHandlers[-1]
         return getattr(nodeHandler, 'index')
     except AttributeError:
-        return None #get_default_handler(nodeHandlers)
+        return None
 
 
 class Site:
-    pass 
+    pass
 
 class Index:
     root = None 
@@ -45,24 +45,28 @@ class Index:
         path = web.ctx.path.split('/')[1:]
         nodeHandler = self.root 
         nodeHandlers = [nodeHandler]
-        for node in path:
-            if not node:
-                break 
-            try:
-                nodeHandler = getattr(nodeHandler, node)
-                nodeHandlers.append(nodeHandler)
-                if callable(nodeHandler):
-                    exposed = nodeHandler.exposed
+        if nodeHandler is None:
+            nodeHandler = get_default_handler([nodeHandlers])
+        else:
+            
+            for node in path:
+                if not node:
+                    break 
+                try:
+                    nodeHandler = getattr(nodeHandler, node)
+                    nodeHandlers.append(nodeHandler)
+                    if callable(nodeHandler):
+                        exposed = nodeHandler.exposed
 
-            except AttributeError:
-                nodeHandler = get_default_handler(nodeHandlers) 
-                break 
+                except AttributeError:
+                    nodeHandler = get_default_handler(nodeHandlers) 
+                    break 
 
 
-        if not callable(nodeHandler) and isinstance(nodeHandler, Site):
-            nodeHandler = get_index_handler(nodeHandlers)
-            if not nodeHandler:
-                nodeHandler = get_default_handler(nodeHandlers)
+            if not callable(nodeHandler) and isinstance(nodeHandler, Site):
+                nodeHandler = get_index_handler(nodeHandlers)
+                if not nodeHandler:
+                    nodeHandler = get_default_handler(nodeHandlers)
 
         web.header('Content-Type', nodeHandler.contentType)
         
