@@ -27,6 +27,12 @@ SOFTWARE.
 __doc__ = '''Please see https://github.com/insequor/webapp for details about this script
 '''
 
+__version__ = "0.1"
+__author__ = [
+    "Ozgur Yuksel <ozgur@insequor.com>"
+]
+__license__ = "MIT License"
+
 
 import web
 
