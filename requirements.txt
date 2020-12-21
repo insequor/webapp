@@ -1,1 +1,11 @@
-web.py==0.51
+appdirs==1.4.4
+cheroot==8.5.1
+distlib==0.3.1
+filelock==3.0.12
+jaraco.functools==3.0.1
+more-itertools==8.6.0
+Oktest==0.15.2
+Paste==3.5.0
+six==1.15.0
+virtualenv==20.2.2
+web.py==0.62
