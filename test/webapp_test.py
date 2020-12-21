@@ -1,5 +1,5 @@
 import sys 
-sys.path.append('py')
+sys.path.append('./')
 
 import unittest 
 from paste.fixture import TestApp
