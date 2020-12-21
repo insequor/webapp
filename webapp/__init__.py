@@ -37,8 +37,9 @@ __license__ = "MIT License"
 import web
 
 class expose:
-    def __init__(self, contentType):
+    def __init__(self, contentType, contentEncoding=None):
         self.contentType = contentType 
+        self.contentEncoding = contentEncoding
 
     def __call__(self, func):
         def wrapped_func(*args):
@@ -46,6 +47,7 @@ class expose:
 
         wrapped_func.exposed = True
         wrapped_func.contentType = self.contentType
+        wrapped_func.contentEncoding = self.contentEncoding
         wrapped_func.__doc__ = func.__doc__
         return wrapped_func 
 
@@ -106,6 +108,8 @@ class Index:
                     nodeHandler = get_default_handler(nodeHandlers)
 
         web.header('Content-Type', nodeHandler.contentType)
+        if nodeHandler.contentEncoding:
+            web.header('Content-Encoding', nodeHandler.contentEncoding)
         
         return nodeHandler()
         

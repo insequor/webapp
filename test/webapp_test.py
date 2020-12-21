@@ -252,6 +252,11 @@ class CustomSiteTest (unittest.TestCase):
     def _(_):
         expect(True) == False 
 
+    @test("Test that zipped data can be returned from a web request")
+    @todo 
+    def _(_):
+        expect(True) == False 
+
 
 class ParameterMappingTest:
     @test("URL Parameters are detected and passed to the handler automatically")
