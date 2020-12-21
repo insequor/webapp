@@ -247,6 +247,12 @@ class CustomSiteTest (unittest.TestCase):
         expect(True) == False 
 
 
+    @test("Test that a callable can be set as a root location rather than a site object")
+    @todo 
+    def _(_):
+        expect(True) == False 
+
+
 class ParameterMappingTest:
     @test("URL Parameters are detected and passed to the handler automatically")
     @todo 

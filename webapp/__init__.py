@@ -78,12 +78,14 @@ class Index:
     root = None 
     def GET(self):
         path = web.ctx.path.split('/')[1:]
-        nodeHandler = self.root 
+        if callable(self.root):
+            nodeHandler = self.root()
+        else:
+            nodeHandler = self.root 
         nodeHandlers = [nodeHandler]
         if nodeHandler is None:
             nodeHandler = get_default_handler([nodeHandlers])
         else:
-            
             for node in path:
                 if not node:
                     break 
