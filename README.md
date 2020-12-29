@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/insequor/webapp.svg?branch=master)](https://travis-ci.com/insequor/webapp)
+
 # webapp
 
 Custom Web Application with automatic URL redirecting. It is built on top of https://webpy.org.
