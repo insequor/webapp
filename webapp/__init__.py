@@ -1,3 +1,5 @@
+
+
 # -*- coding: iso-8859-15 -*-
 
 __license__ = '''
@@ -36,9 +38,10 @@ __license__ = "MIT License"
 
 import web
 
+
 class expose:
     def __init__(self, contentType, contentEncoding=None):
-        self.contentType = contentType 
+        self.contentType = contentType
         self.contentEncoding = contentEncoding
 
     def __call__(self, func):
@@ -49,7 +52,7 @@ class expose:
         wrapped_func.contentType = self.contentType
         wrapped_func.contentEncoding = self.contentEncoding
         wrapped_func.__doc__ = func.__doc__
-        return wrapped_func 
+        return wrapped_func
 
 
 @expose(contentType='text/html; charset=utf-8')
