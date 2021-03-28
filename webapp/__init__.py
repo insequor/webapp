@@ -97,6 +97,32 @@ def unzipIt(content, compresslevel=5):
     f = gzip.GzipFile(fileobj=out, mode='r', compresslevel=compresslevel)
     return f.read()
 
+def parseQuery(query):
+    storage = web.Storage()
+    query = query.strip()
+    if query.startswith('?'):
+        query = query[1:]
+    
+    for parameter in query.split('&'):
+        key, *val = parameter.split('=')
+        if not key:
+            continue 
+        if val == []:
+            val = True 
+        else:
+            val = '='.join(val)
+    
+        try:
+            oldValue = storage[key]
+            if isinstance(oldValue, list):
+                oldValue.append(val)
+            else:
+                storage[key] = [oldValue, val]
+        except KeyError:
+            storage[key] = val
+        
+    return storage
+
 class Index:
     root = None 
     def GET(self):
@@ -133,7 +159,9 @@ class Index:
             web.header('Content-Encoding', nodeHandler.contentEncoding)
                 
         
-        input = web.input()
+        #input = web.input()
+        input = parseQuery(web.ctx.query)
+        
         try:
             result = nodeHandler(**input)
         except TypeError as err:

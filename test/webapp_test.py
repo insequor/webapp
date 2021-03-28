@@ -7,7 +7,7 @@ import unittest
 from paste.fixture import TestApp
 from oktest import ok as expect, test, todo, skip, run as runTests   
 
-from webapp import expose, Application, Site, unzipIt, zipIt, web
+from webapp import expose, Application, Site, unzipIt, zipIt, web, parseQuery
 import webapp 
 
 
@@ -254,23 +254,8 @@ class CustomSiteTest (unittest.TestCase):
     def _(_):
         expect(True) == False 
 
-    @test("Test that zipped data can be returned from a web request")
-    @todo 
-    def _(_):
-        expect(True) == False 
 
 
-class ParameterSiteRoot(Site):
-    def __init__(self):
-        pass 
-
-    @expose(contentType='text/html; charset=utf-8')
-    def page_without_params(self):
-        return ''''''
-
-    @expose(contentType='text/html; charset=utf-8')
-    def page_with_params_dictionary_as_input(self, **params):
-        return str(params)
 
 
 class ContenTypeSiteRoot(Site):
@@ -373,7 +358,25 @@ class ContentTypeTest:
 
     
 
+class ParameterSiteRoot(Site):
+    def __init__(self):
+        pass 
+
+    @expose(contentType='text/html; charset=utf-8')
+    def page_without_params(self):
+        return ''''''
+
+    @expose(contentType='text/html; charset=utf-8')
+    def page_with_params_dictionary_as_input(self, **params):
+        return str(params)
     
+    @expose(contentType='text/html; charset=utf-8')
+    def page_with_parameters(self, a):
+        return str(a)
+
+    @expose(contentType='text/html; charset=utf-8')
+    def page_with_parameter_existince_check(self, a=None):
+        return str(a is not None)
 
 class ParameterMappingTest:
     @classmethod
@@ -409,11 +412,84 @@ class ParameterMappingTest:
         expect(res.status) == 200
         expect(res.body) == b'{}'
 
+
     @test("URls with url parameter passes a dictionary with parameters")
     def _(_):
         res = testApp.get('/page_with_params_dictionary_as_input?a=A&b=B')
         expect(res.status) == 200
         expect(res.body) != b'{}'
+
+    @test("We can call a page with a page parameters")
+    def _(_):
+        res = testApp.get('/page_with_parameters?a=A')
+        expect(res.status) == 200
+        expect(res.body) == b'A'
+
+    @test("We can call a page with a page parameters with multiple values")
+    def _(_):
+        res = testApp.get('/page_with_parameters?a=A&a=AA')
+        expect(res.status) == 200
+        expect(res.body) == b"['A', 'AA']"
+
+    @test("We can call a page with a page parameters without valies for parameter existence check")
+    def _(_):
+        res = testApp.get('/page_with_parameter_existince_check?a')
+        expect(res.status) == 200
+        expect(res.body) == b'True'
+
+
+        res = testApp.get('/page_with_parameter_existince_check')
+        expect(res.status) == 200
+        expect(res.body) == b'False'
+
+    @test("Calling a page with parameter without the parameter raises error")
+    @skip.when(True, 'Did not decide how to handle the error yet')
+    def _(_):
+        res = testApp.get('/page_with_parameters')
+        expect(res.status) == 200
+        expect(res.body) == b'A'
+
+
+
+class QueryParsingTests:
+    @test("Empty string returns an empty storage")
+    def _(_):
+        expect(parseQuery(""))  == web.Storage()
+
+    @test("string starting with ? and nothing else returns an empty storage")
+    def _(_):
+        expect(parseQuery("?"))  == web.Storage()
+
+    @test("query parameter without a value means True")
+    def _(_):
+        expect(parseQuery("?a"))  == web.Storage(a=True)
+
+    @test("query parameter with value is returns")
+    def _(_):
+        expect(parseQuery("?a=A"))  == web.Storage(a='A')
+
+    @test("multiple occurrence of the = sign in values are considered as = signs")
+    def _(_):
+        expect(parseQuery("?a=A=B"))  == web.Storage(a='A=B')
+
+    @test("multiple parameters with values can be passed")
+    def _(_):
+        expect(parseQuery("?a=A&b=B"))  == web.Storage(a='A', b='B')
+
+    @test("parameters with and without value can be mixed")
+    def _(_):
+        expect(parseQuery("?a&b=B"))  == web.Storage(a=True, b='B')
+
+    @test("same key can be added multiple times to return an list")
+    def _(_):
+        expect(parseQuery("?a=A&a=B"))  == web.Storage(a=['A', 'B'])
+        expect(parseQuery("?a=A&a=B&a=C"))  == web.Storage(a=['A', 'B', 'C'])
+
+    @test("same key can be combined with and without value")
+    def _(_):
+        expect(parseQuery("?a&a=B"))  == web.Storage(a=[True, 'B'])
+        expect(parseQuery("?a=A&a"))  == web.Storage(a=['A', True])
+
 
 if __name__ == '__main__':
     #unittest.main()
