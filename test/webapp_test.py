@@ -1,11 +1,13 @@
 import sys 
 sys.path.append('./')
 
+import json 
+
 import unittest 
 from paste.fixture import TestApp
-from oktest import ok as expect, test, todo, run as runTests   
+from oktest import ok as expect, test, todo, skip, run as runTests   
 
-from webapp import expose, Application, Site 
+from webapp import expose, Application, Site, unzipIt, zipIt, web
 import webapp 
 
 
@@ -258,11 +260,160 @@ class CustomSiteTest (unittest.TestCase):
         expect(True) == False 
 
 
-class ParameterMappingTest:
-    @test("URL Parameters are detected and passed to the handler automatically")
-    @todo 
+class ParameterSiteRoot(Site):
+    def __init__(self):
+        pass 
+
+    @expose(contentType='text/html; charset=utf-8')
+    def page_without_params(self):
+        return ''''''
+
+    @expose(contentType='text/html; charset=utf-8')
+    def page_with_params_dictionary_as_input(self, **params):
+        return str(params)
+
+
+class ContenTypeSiteRoot(Site):
+    def __init__(self):
+        pass 
+
+    @expose(contentType='text/html; charset=utf-8')
+    def html(self):
+        return '''HTML'''
+
+    @expose(contentType='text/html; charset=utf-8', contentEncoding='gzip')
+    def zipped_html(self):
+        return zipIt('HTML Zipped')
+
+    @expose(contentType='application/json; charset=utf-8')
+    def json(self):
+        return json.dumps('JSON', indent=1)
+
+    @expose(contentType='application/json; charset=utf-8', contentEncoding='gzip')
+    def zipped_json(self):
+        return zipIt(json.dumps('JSON Zipped', indent=1))
+
+
+    @expose(contentType='application/text; charset=utf-8')
+    def text_as_downloadable_file(self):
+        web.header('content-disposition', 'attachment;filename=myfile.csv')
+        return 'text file content'
+
+    @expose(contentType='application/text; charset=utf-8', contentEncoding='gzip')
+    def zipped_text_as_downloadable_file(self):
+        web.header('content-disposition', 'attachment;filename=myfile.csv')
+        return zipIt('zipped text file content')
+    
+
+
+class ContentTypeTest:
+    @classmethod
+    def setUpClass(cls):
+        global testApp 
+        global app
+
+        app = Application(root=ContenTypeSiteRoot(), urls=None, globals=globals())
+        middleware = []
+        
+        testApp = TestApp(app.wsgifunc(*middleware))
+
+    @classmethod
+    def tearDownClass(cls):
+        pass 
+    
+    @test("We support returning simple HTML")
     def _(_):
-        expect(True) == False 
+        res = testApp.get('/html')
+        expect(res.header('Content-Type')).should.startswith('text/html')
+        expect(res.status) == 200
+        expect(res.body) == b'HTML'
+
+    @test("We support returning zipped HTML")
+    def _(_):
+        res = testApp.get('/zipped_html')
+        expect(res.header('Content-Type')).should.startswith('text/html')
+        expect(res.header('Content-Encoding')) == 'gzip'
+        expect(res.status) == 200
+        content = unzipIt(res.body)
+        expect(content) == b'HTML Zipped'
+
+    @test("We support returning JSON data")
+    def _(_):
+        res = testApp.get('/json')
+        expect(res.header('Content-Type')).should.startswith('application/json')
+        expect(res.status) == 200
+        content = json.loads(res.body)
+        expect(content) == 'JSON'
+
+    @test("We support returning zipped HTML")
+    def _(_):
+        res = testApp.get('/zipped_json')
+        expect(res.header('Content-Type')).should.startswith('application/json')
+        expect(res.header('Content-Encoding')) == 'gzip'
+        expect(res.status) == 200
+        content = json.loads(unzipIt(res.body))
+        expect(content) == 'JSON Zipped'
+
+    @test("We support returning downloadable text data")
+    def _(_):
+        res = testApp.get('/text_as_downloadable_file')
+        expect(res.header('Content-Type')).should.startswith('application/text')
+        expect(res.header('content-disposition')) == 'attachment;filename=myfile.csv'
+        expect(res.status) == 200
+        expect(res.body) == b'text file content'
+
+    @test("We support returning downloadable zipped text data")
+    def _(_):
+        res = testApp.get('/zipped_text_as_downloadable_file')
+        expect(res.header('Content-Type')).should.startswith('application/text')
+        expect(res.header('content-disposition')) == 'attachment;filename=myfile.csv'
+        expect(res.status) == 200
+        expect(unzipIt(res.body)) == b'zipped text file content'
+
+
+    
+
+    
+
+class ParameterMappingTest:
+    @classmethod
+    def setUpClass(cls):
+        global testApp 
+        global app
+
+        app = Application(root=ParameterSiteRoot(), urls=None, globals=globals())
+        middleware = []
+        
+        testApp = TestApp(app.wsgifunc(*middleware))
+
+    @classmethod
+    def tearDownClass(cls):
+        pass 
+    
+    @test("Methods without any parameter is supported if passed without url parameters")
+    def _(_):
+        res = testApp.get('/page_without_params')
+        expect(res.status) == 200
+        expect(res.body) == b''
+
+    @test("Methods without any parameter is supported if passed with url parameters")
+    def _(_):
+        res = testApp.get('/page_without_params?a=A')
+        expect(res.status) == 200
+        expect(res.body) == b''
+
+
+    @test("URls without any url parameter passes an empty dictionary")
+    def _(_):
+        res = testApp.get('/page_with_params_dictionary_as_input')
+        expect(res.status) == 200
+        expect(res.body) == b'{}'
+
+    @test("URls with url parameter passes a dictionary with parameters")
+    def _(_):
+        res = testApp.get('/page_with_params_dictionary_as_input?a=A&b=B')
+        expect(res.status) == 200
+        expect(res.body) != b'{}'
 
 if __name__ == '__main__':
     #unittest.main()

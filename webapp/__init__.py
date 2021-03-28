@@ -36,6 +36,10 @@ __author__ = [
 __license__ = "MIT License"
 
 
+from inspect import signature 
+from io import BytesIO
+import gzip
+
 import web
 
 
@@ -45,13 +49,14 @@ class expose:
         self.contentEncoding = contentEncoding
 
     def __call__(self, func):
-        def wrapped_func(*args):
-            return func(*args)
+        def wrapped_func(*args, **namedArgs):
+            return func(*args, **namedArgs)
 
         wrapped_func.exposed = True
         wrapped_func.contentType = self.contentType
         wrapped_func.contentEncoding = self.contentEncoding
         wrapped_func.__doc__ = func.__doc__
+        wrapped_func.originalFunction = func 
         return wrapped_func
 
 
@@ -78,6 +83,19 @@ def get_index_handler(nodeHandlers):
 
 class Site:
     pass
+
+
+def zipIt(content, compresslevel=5):
+    out = BytesIO()
+    f = gzip.GzipFile(fileobj=out, mode='w', compresslevel=compresslevel)
+    f.write(bytes(content, 'utf-8'))
+    f.close()
+    return out.getvalue()
+
+def unzipIt(content, compresslevel=5):
+    out = BytesIO(content)
+    f = gzip.GzipFile(fileobj=out, mode='r', compresslevel=compresslevel)
+    return f.read()
 
 class Index:
     root = None 
@@ -113,9 +131,23 @@ class Index:
         web.header('Content-Type', nodeHandler.contentType)
         if nodeHandler.contentEncoding:
             web.header('Content-Encoding', nodeHandler.contentEncoding)
+                
         
-        return nodeHandler()
-        
+        input = web.input()
+        try:
+            result = nodeHandler(**input)
+        except TypeError as err:
+            #If this is global handler it might have 0 parameters as input
+            #If this is a method handler, than it would have one parameter by default as self but we can't 
+            #rely on the parameter name. So, a simple short cut is, if there are more than one parameters
+            #then we raise the exception further
+            functionSignature = signature(nodeHandler.originalFunction)
+            if len(functionSignature.parameters) > 1:
+                raise (err)
+            result = nodeHandler()
+
+        return result 
+
 class Application(web.application):
     def __init__(self, root=None, urls=None, globals=globals()):
         if urls is None:
