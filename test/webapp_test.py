@@ -449,7 +449,52 @@ class ParameterMappingTest:
         expect(res.status) == 200
         expect(res.body) == b'A'
 
+class PostHandlingSiteRoot(Site):
+    def __init__(self):
+        pass 
 
+    @expose(contentType='text/html; charset=utf-8')
+    def assert_get_request(self, **query):
+        assert '_post' not in query 
+        return ''
+
+    @expose(contentType='text/html; charset=utf-8')
+    def assert_post_request(self, **query):
+        assert '_post' in query 
+        assert query['_post']
+        
+    
+
+class PostHandlingTest:
+    @classmethod
+    def setUpClass(cls):
+        global testApp 
+        global app
+
+        app = Application(root=PostHandlingSiteRoot(), urls=None, globals=globals())
+        middleware = []
+        
+        testApp = TestApp(app.wsgifunc(*middleware))
+
+    @classmethod
+    def tearDownClass(cls):
+        pass 
+    
+    @test("Get request does not have _post keyword")
+    @skip.when(True, 'Not sure how to test this case')
+    def _(_):
+        res = testApp.get('/assert_get_request')
+        expect(res.status) == 200
+        expect(res.body) == b''
+
+    @test("Post request does have _post keyword")
+    @skip.when(True, 'Not sure how to test this case')
+    def _(_):
+        def caller():
+            res = testApp.post('/assert_post_request')
+        
+        expect(caller).not_raise()
+        
 
 class QueryParsingTests:
     @test("Empty string returns an empty storage")

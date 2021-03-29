@@ -125,8 +125,8 @@ def parseQuery(query):
 
 class Index:
     root = None 
-    def GET(self):
-        path = web.ctx.path.split('/')[1:]
+
+    def getNodeHandler(self, path):
         if callable(self.root):
             nodeHandler = self.root()
         else:
@@ -153,17 +153,20 @@ class Index:
                 nodeHandler = get_index_handler(nodeHandlers)
                 if not nodeHandler:
                     nodeHandler = get_default_handler(nodeHandlers)
+        return nodeHandler 
+
+
+    def GET(self):
+        path = web.ctx.path.split('/')[1:]
+        nodeHandler = self.getNodeHandler(path)
 
         web.header('Content-Type', nodeHandler.contentType)
         if nodeHandler.contentEncoding:
             web.header('Content-Encoding', nodeHandler.contentEncoding)
                 
-        
-        #input = web.input()
-        input = parseQuery(web.ctx.query)
-        
+        query = parseQuery(web.ctx.query)
         try:
-            result = nodeHandler(**input)
+            result = nodeHandler(**query)
         except TypeError as err:
             #If this is global handler it might have 0 parameters as input
             #If this is a method handler, than it would have one parameter by default as self but we can't 
@@ -175,6 +178,38 @@ class Index:
             result = nodeHandler()
 
         return result 
+
+
+    def POST(self):
+        
+        path = web.ctx.path.split('/')[1:]
+        nodeHandler = self.getNodeHandler(path)
+        
+        query = parseQuery(web.ctx.query)
+        #
+        #TODO: Current method finds the same URL handler as in the GET case, but we do not have a way
+        #      to thell the handler that this is a POST request so we pass a keyword argument. It
+        #      is up to the handler to handle this argument.
+        #
+        #      Alternatively we can thinkg of our methods as get_handler() and post_handler(). To support 
+        #      the existing implementation we should consider handler() as get_handler() so we can simply 
+        #      add post_handler() concept. If the URL is triggerred by POST action we look for post_handler 
+        #      instead of handler. But this might create trouble for default handling etc. So perhaps _post 
+        #      keyword is the simplest approach
+        #
+        assert '_post' not in query, '_post is a reserved keyword'
+        query['_post'] = True 
+        try:
+            nodeHandler(**query)
+        except TypeError as err:
+            #If this is global handler it might have 0 parameters as input
+            #If this is a method handler, than it would have one parameter by default as self but we can't 
+            #rely on the parameter name. So, a simple short cut is, if there are more than one parameters
+            #then we raise the exception further
+            functionSignature = signature(nodeHandler.originalFunction)
+            if len(functionSignature.parameters) > 1:
+                raise (err)
+            nodeHandler()
 
 class Application(web.application):
     def __init__(self, root=None, urls=None, globals=globals()):
