@@ -200,7 +200,7 @@ class Index:
         assert '_post' not in query, '_post is a reserved keyword'
         query['_post'] = True 
         try:
-            nodeHandler(**query)
+            result = nodeHandler(**query)
         except TypeError as err:
             #If this is global handler it might have 0 parameters as input
             #If this is a method handler, than it would have one parameter by default as self but we can't 
@@ -209,7 +209,8 @@ class Index:
             functionSignature = signature(nodeHandler.originalFunction)
             if len(functionSignature.parameters) > 1:
                 raise (err)
-            nodeHandler()
+            result = nodeHandler()
+        return result 
 
 class Application(web.application):
     def __init__(self, root=None, urls=None, globals=globals()):
