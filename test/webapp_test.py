@@ -496,7 +496,7 @@ class PostHandlingTest:
         expect(caller).not_raise()
         
 
-class QueryParsingTests:
+class QueryParsingTest:
     @test("Empty string returns an empty storage")
     def _(_):
         expect(parseQuery(""))  == web.Storage()
@@ -535,6 +535,25 @@ class QueryParsingTests:
         expect(parseQuery("?a&a=B"))  == web.Storage(a=[True, 'B'])
         expect(parseQuery("?a=A&a"))  == web.Storage(a=['A', True])
 
+    @test("white spaces in parameters are preserved")
+    def _(_):
+        expect(parseQuery("?a=A B"))  == web.Storage(a='A B')
+
+    @test("white spaces are converted from URL characters so we do not need to unquote on the receiving end")
+    def _(_):
+        expect(parseQuery("?a=A%20B"))  == web.Storage(a='A B')
+        
+    @test("white spaces before the value is preserved")
+    def _(_):
+        expect(parseQuery("?a= A"))  == web.Storage(a=' A')
+
+    @test("white spaces at the end of the query are stripped")
+    def _(_):
+        expect(parseQuery("?a=A "))  == web.Storage(a='A')
+
+    @test("white spaces between the values are preseverd")
+    def _(_):
+        expect(parseQuery("?a=A &b=B "))  == web.Storage(a='A ', b='B')
 
 if __name__ == '__main__':
     #unittest.main()

@@ -35,11 +35,13 @@ __author__ = [
 ]
 __license__ = "MIT License"
 
-
+#Standard
 from inspect import signature 
 from io import BytesIO
 import gzip
+from urllib.parse import unquote
 
+#Third Party
 import web
 
 
@@ -111,7 +113,7 @@ def parseQuery(query):
             val = True 
         else:
             val = '='.join(val)
-    
+            val = unquote(val)
         try:
             oldValue = storage[key]
             if isinstance(oldValue, list):
