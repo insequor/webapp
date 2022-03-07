@@ -40,6 +40,7 @@ from inspect import signature
 from typing import List
 from io import BytesIO
 import gzip
+from urllib.parse import unquote
 
 import web
 
