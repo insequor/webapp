@@ -35,20 +35,30 @@ __author__ = [
 ]
 __license__ = "MIT License"
 
-#Standard
+import os
 from inspect import signature 
+from typing import List
 from io import BytesIO
 import gzip
-from urllib.parse import unquote
 
-#Third Party
 import web
 
 
+def defaultCORSOption():
+    envVar = os.environ.get("WEBAPP_DEFAULT_CORS_OPTION", "")
+    return envVar if envVar != "" else None
+
+
 class expose:
-    def __init__(self, contentType, contentEncoding=None):
+    def __init__(self, contentType: str, 
+                 contentEncoding: str=None, 
+                 enableCORS: str=defaultCORSOption(), 
+                 methods: List[str]=["GET", "POST"]):  # OPTIONS WILL BE ADDED AUTOMATICALLY
         self.contentType = contentType
         self.contentEncoding = contentEncoding
+        self.enableCORS = enableCORS
+        self.supportMethods = set(methods)
+        self.supportMethods.add("OPTIONS")
 
     def __call__(self, func):
         def wrapped_func(*args, **namedArgs):
@@ -57,6 +67,8 @@ class expose:
         wrapped_func.exposed = True
         wrapped_func.contentType = self.contentType
         wrapped_func.contentEncoding = self.contentEncoding
+        wrapped_func.enableCORS = self.enableCORS
+        wrapped_func.supportMethods = self.supportMethods
         wrapped_func.__doc__ = func.__doc__
         wrapped_func.originalFunction = func 
         return wrapped_func
@@ -114,6 +126,8 @@ def parseQuery(query):
         else:
             val = '='.join(val)
             val = unquote(val)
+
+    
         try:
             oldValue = storage[key]
             if isinstance(oldValue, list):
@@ -157,11 +171,29 @@ class Index:
                     nodeHandler = get_default_handler(nodeHandlers)
         return nodeHandler 
 
+    def addDefaultHeaders(self, method, nodeHandler):
+        methods = ", ".join(nodeHandler.supportMethods)
+        if nodeHandler.enableCORS is not None:
+            web.header('Access-Control-Allow-Origin', nodeHandler.enableCORS, unique=True)
+            web.header('Access-Control-Allow-Methods', methods, unique=True),
+            web.header('Access-Control-Allow-Headers', 'Authorization, Content-Type', unique=True)    
+        
+        if method not in nodeHandler.supportMethods:
+            class MethodCheckObject:
+                def __getattribute__(self, name: str):
+                    if name not in nodeHandler.supportMethods:
+                        raise AttributeError() 
+                    return None
+            raise web.nomethod(cls=MethodCheckObject())
+        else:
+            web.header('Allow', methods)
 
     def GET(self):
         path = web.ctx.path.split('/')[1:]
         nodeHandler = self.getNodeHandler(path)
 
+        self.addDefaultHeaders("GET", nodeHandler)
+        
         web.header('Content-Type', nodeHandler.contentType)
         if nodeHandler.contentEncoding:
             web.header('Content-Encoding', nodeHandler.contentEncoding)
@@ -178,15 +210,15 @@ class Index:
             if len(functionSignature.parameters) > 1:
                 raise (err)
             result = nodeHandler()
-
         return result 
-
 
     def POST(self):
         
         path = web.ctx.path.split('/')[1:]
         nodeHandler = self.getNodeHandler(path)
         
+        self.addDefaultHeaders("POST", nodeHandler)
+
         query = parseQuery(web.ctx.query)
         #
         #TODO: Current method finds the same URL handler as in the GET case, but we do not have a way
@@ -213,6 +245,14 @@ class Index:
                 raise (err)
             result = nodeHandler()
         return result 
+
+    def OPTIONS(self):
+        path = web.ctx.path.split('/')[1:]
+        nodeHandler = self.getNodeHandler(path)
+
+        self.addDefaultHeaders("OPTIONS", nodeHandler)
+        return ""
+
 
 class Application(web.application):
     def __init__(self, root=None, urls=None, globals=globals()):
