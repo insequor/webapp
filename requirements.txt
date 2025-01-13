@@ -7,5 +7,5 @@ more-itertools==8.6.0
 Oktest==0.15.2
 Paste==3.5.0
 six==1.15.0
-virtualenv==20.2.2
+virtualenv==20.26.6
 web.py==0.62
